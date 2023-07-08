@@ -8,6 +8,7 @@ using Random = Unity.Mathematics.Random;
 public class GameManagerScript : MonoBehaviour
 {
 	public PlayerScript player;
+	public DialogueScript dialogueScript;
 	public Transform customerQueueObj;
 	public Transform cartNPCPos;
 	public TMP_Text goldUI;
@@ -41,5 +42,58 @@ public class GameManagerScript : MonoBehaviour
 		goldUI.text = player.gp + "GP";
 		debtUI.text = player.debt + "GP";
 		canSpawnCustomers = customerQueueObj.childCount < maxCustomers;
+	}
+
+	public void AcceptTrade()
+	{
+		//Customer is selling their item
+		if (currentCustomer.selling && player.gp > 0)
+		{
+			if (currentCustomer.gp <= currentCustomer.purchaseValue)
+			{
+				currentCustomer.purchaseValue = currentCustomer.gp;
+			}
+
+			player.gp = Mathf.Max(0, player.gp - currentCustomer.purchaseValue);
+			currentCustomer.gp += currentCustomer.purchaseValue;
+
+			//TODO: make customer leave a review
+		}
+
+		//Customer is buying an item
+		else if (!currentCustomer.selling && currentCustomer.gp > 0)
+		{
+			if (currentCustomer.gp <= currentCustomer.purchaseValue)
+			{
+				currentCustomer.purchaseValue = currentCustomer.gp;
+			}
+
+			currentCustomer.gp = Mathf.Max(0, currentCustomer.gp - currentCustomer.purchaseValue);
+			player.gp += currentCustomer.purchaseValue;
+
+			//TODO: make customer leave a review
+		}
+		else
+		{
+			Debug.Log("Player broke?");
+		}
+		
+
+		currentCustomer.readyForDialogue = false;
+		currentCustomer.ToggleAgent(true);
+		currentCustomer = null;
+	}
+
+	public void HaggleTrade()
+	{
+		currentCustomer.RollPurchaseValue();
+	}
+
+	public void DeclineTrade()
+	{
+		//TODO: make customer leave a review
+		currentCustomer.readyForDialogue = false;
+		currentCustomer.ToggleAgent(true);
+		currentCustomer = null;
 	}
 }
