@@ -12,8 +12,7 @@ public class NPCSpawnerScript : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		gm = FindObjectOfType<GameManagerScript>();
-		timeToSpawnNextCustomer = gm.rand.Range(gm.minTimeToSpawnNextCustomer, gm.maxTimeToSpawnNextCustomer);
+		timeToSpawnNextCustomer = 0;
 	}
 
 	// Update is called once per frame
@@ -24,13 +23,13 @@ public class NPCSpawnerScript : MonoBehaviour
 			spawnNextCustomer += Time.deltaTime;
 			if (spawnNextCustomer > timeToSpawnNextCustomer)
 			{
-				int prefabInt = gm.rand.Range(0, customerPrefabs.Length-1);
-				SpawnCusomer(customerPrefabs[prefabInt]);
+				int prefabInt = gm.rand.Range(0, customerPrefabs.Length);
+				SpawnCustomer(customerPrefabs[prefabInt]);
 			}
 		}
 	}
 
-	void SpawnCusomer(GameObject prefab)
+	void SpawnCustomer(GameObject prefab)
 	{
 		GameObject customer = Instantiate(prefab);
 		customer.transform.SetParent(gm.customerQueueObj);
