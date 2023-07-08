@@ -15,7 +15,9 @@ public class NPCScript : MonoBehaviour
 	public int gp;
 	public int haggleDisposition;
 	public int personality;
+	public GameObject[] accessories;
 	public bool selling;
+	public bool setUp;
 	NavMeshAgent agent;
 	NavMeshObstacle agentObstacle;
 	float waiting = 0;
@@ -23,35 +25,16 @@ public class NPCScript : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		//Get the game manager
-		gm = FindObjectOfType<GameManagerScript>();
-		
-		//Get the agent
-		agent = GetComponent<NavMeshAgent>();
-		
-		//Get the agent obstacle
-		agentObstacle = GetComponent<NavMeshObstacle>();
-		
-		//determine a random amount of gold
-		gp = gm.rand.Range(gm.minNPCStartingGold, gm.maxNPCStartingGold + 1);
-		
-		//TODO: Make this affect stuff
-		//Determine a random disposition
-		//Higher numbers mean more likely to haggle when selling
-		//and less likely to accept a haggle on sale
-		haggleDisposition = gm.rand.Range(gm.minNPCHaggleDisposition, gm.maxNPCHaggleDisposition + 1);
-				
-		//TODO: Make this affect stuff
-		//Determine a random personality value
-		//Higher numbers mean more likely to leave good reviews
-		personality = gm.rand.Range(gm.minNPCPersonality, gm.maxNPCPersonality + 1);
-		
-		ToggleAgent(true);
+		CreateNPC();
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
+		if (!setUp)
+		{
+			return;
+		}
 		//Agent is active
 		if (agent.enabled)
 		{
@@ -182,6 +165,41 @@ public class NPCScript : MonoBehaviour
 		agent.enabled = state;
 	}
 
+	async private void CreateNPC()
+	{
+		await UniTask.Delay((int)(Time.deltaTime * 1000));
+
+		//Get the game manager
+		gm = FindObjectOfType<GameManagerScript>();
+		
+		//Get the agent
+		agent = GetComponent<NavMeshAgent>();
+		
+		//Get the agent obstacle
+		agentObstacle = GetComponent<NavMeshObstacle>();
+		
+		//determine a random amount of gold
+		gp = gm.rand.Range(gm.minNPCStartingGold, gm.maxNPCStartingGold + 1);
+		
+		//TODO: Make this affect stuff
+		//Determine a random disposition
+		//Higher numbers mean more likely to haggle when selling
+		//and less likely to accept a haggle on sale
+		haggleDisposition = gm.rand.Range(gm.minNPCHaggleDisposition, gm.maxNPCHaggleDisposition + 1);
+				
+		//TODO: Make this affect stuff
+		//Determine a random personality value
+		//Higher numbers mean more likely to leave good reviews
+		personality = gm.rand.Range(gm.minNPCPersonality, gm.maxNPCPersonality + 1);
+
+		foreach (var accessory in accessories)
+		{
+			accessory.SetActive(gm.rand.Range(0, 11) > 8);
+		}
+			
+		ToggleAgent(true);
+		setUp = true;
+	}
 	public static Vector3 GetRandomPoint(Vector3 center, float maxDistance)
 	{
 		// Get Random Point inside Sphere which position is center, radius is maxDistance
