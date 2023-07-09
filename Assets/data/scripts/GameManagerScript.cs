@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using data.scripts;
@@ -10,6 +11,7 @@ public class GameManagerScript : MonoBehaviour
 {
 	public PlayerScript player;
 	public DialogueScript dialogueScript;
+	public Camera camera;
 	public Transform customerQueueObj;
 	public Transform cartNPCPos;
 	public TMP_Text goldUI;
@@ -30,6 +32,7 @@ public class GameManagerScript : MonoBehaviour
 	public float minTimeToSpawnNextCustomer;
 	public float maxTimeToSpawnNextCustomer;
 	public JSONNode itemNames;
+	public JSONNode itemFlourishes;
 	public JSONNode npcFirstNames;
 	public JSONNode npcMiddleNames;
 	public JSONNode npcLastNames;
@@ -43,7 +46,10 @@ public class GameManagerScript : MonoBehaviour
 	void Start()
 	{
 		rand = new Rand(RandomSeed);
+		camera = Camera.main;
+
 		itemNames = JSON.Parse(Resources.Load<TextAsset>("itemNames").ToString());
+		itemFlourishes = JSON.Parse(Resources.Load<TextAsset>("itemFlourishes").ToString());
 		npcFirstNames = JSON.Parse(Resources.Load<TextAsset>("npcFirstNames").ToString());
 		npcMiddleNames = JSON.Parse(Resources.Load<TextAsset>("npcMiddleNames").ToString());
 		npcLastNames = JSON.Parse(Resources.Load<TextAsset>("npcLastNames").ToString());
@@ -103,14 +109,67 @@ public class GameManagerScript : MonoBehaviour
 
 	public void HaggleTrade()
 	{
-		currentCustomer.RollPurchaseValue();
+		//Pick a possibility
+		int r = rand.Range(1, 101);
+
+		//If the number is lower than the currentCustomer.personality the customer will storm off
+		if (r < currentCustomer.personality)
+		{
+			currentCustomer.SaySnark();
+			FinishTrade();
+		}
+		else
+		{
+			currentCustomer.RollPurchaseValue();
+		}
 	}
 
 	public void DeclineTrade()
 	{
-		//TODO: make customer leave a review
-		currentCustomer.readyForDialogue = false;
-		currentCustomer.ToggleAgent(true);
+		//Pick a possibility
+		int r = rand.Range(1, 101);
+		//If the number is lower than the currentCustomer.personality, you'll get a bad review
+		if (r < currentCustomer.personality)
+		{
+			int score = 0;
+			string review = badReviews[rand.Range(0, badReviews.Count)];
+			score = (int)Math.Ceiling(currentCustomer.personality / 10f);
+
+			//Leave a review
+			LeaveReview(review, -score);
+		}
+
+		FinishTrade();
+	}
+
+	void FinishTrade()
+	{
+		//Reset the customer back to base state
+		currentCustomer.Reset();
+		
+		//Clear the current customer
 		currentCustomer = null;
+		
+		//Reset the dialogue ui back to base state
+		dialogueScript.Reset();
+	}
+
+	public void StartTrading()
+	{
+		dialogueScript.TradingButtons.SetActive(true);
+	} 
+	
+	void LeaveReview(string review, int score)
+	{
+		player.reviews.Add(review);
+		player.score += score;
+	}
+
+	public bool RollDice(int percentageChance)
+	{
+		if (rand.Range(1, 101) <= percentageChance)
+			return true;
+		else
+			return false;
 	}
 }

@@ -119,6 +119,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gm: {fileID: 0}
+  SnarkPrefab: {fileID: 1636698480214781772, guid: 2263ea9c6551369439e26a4230361732,
+    type: 3}
   wanderDistance: 25
   gp: 0
   haggleDisposition: 0
@@ -131,6 +133,9 @@ MonoBehaviour:
   selling: 0
   setUp: 0
   readyForDialogue: 0
+  NPCFirstName: 
+  NPCLastName: 
+  NPCMiddleName: 
   NPCName: 
 --- !u!1 &4816207903800996240
 GameObject:

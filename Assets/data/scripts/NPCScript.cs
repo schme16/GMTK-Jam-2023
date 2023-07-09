@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UIElements;
@@ -11,6 +12,7 @@ using Random = UnityEngine.Random;
 public class NPCScript : MonoBehaviour
 {
 	public GameManagerScript gm;
+	public GameObject SnarkPrefab;
 	public float wanderDistance = 20;
 	public int gp;
 	public int haggleDisposition;
@@ -22,8 +24,10 @@ public class NPCScript : MonoBehaviour
 	public bool readyForDialogue;
 	public string NPCFirstName;
 	public string NPCLastName;
+	public SaleItem item;
 	public string NPCMiddleName;
 	public string NPCName;
+	public string openingDialogues;
 	NavMeshAgent agent;
 	NavMeshObstacle agentObstacle;
 
@@ -88,26 +92,14 @@ public class NPCScript : MonoBehaviour
 						//This is what triggers when the agent enters dialogue mode
 						else if (gm.currentCustomer == this && !readyForDialogue)
 						{
-
+							//Marks the 
 							readyForDialogue = true;
-							
-							//Face the player
-							transform.LookAt(gm.player.transform);
+
 
 							//Increase the avoidance priority while seeking the cart
 							agent.avoidancePriority = 50;
 
-
-							//Determine if the customer is buying or selling
-							Debug.Log(gm.rand == null);
-							selling = gm.rand.Range(0, 2) > 0;
-
-							//Roll a price
-							RollPurchaseValue();
-
-								
-							//Disable the agent
-							ToggleAgent(false);
+							StartDialogue();
 						}
 					}
 				}
@@ -119,7 +111,9 @@ public class NPCScript : MonoBehaviour
 
 		if (this == gm.currentCustomer)
 		{
+			//Face the player
 			transform.LookAt(gm.player.transform);
+			transform.eulerAngles = new Vector3(0, transform.eulerAngles.y, 0);
 		}
 	}
 
@@ -191,7 +185,8 @@ public class NPCScript : MonoBehaviour
 
 		ToggleAgent(true);
 
-		//TODO: make a name generator
+
+		//Create the NPC's name
 		int numberOfNames = gm.rand.Range(2, 4);
 		if (numberOfNames == 2)
 		{
@@ -206,16 +201,93 @@ public class NPCScript : MonoBehaviour
 			NPCMiddleName = gm.npcMiddleNames[gm.rand.Range(0, gm.npcMiddleNames.Count)];
 			NPCName = NPCFirstName + " " + NPCMiddleName + " " + NPCLastName;
 		}
-			
+
 
 		setUp = true;
 	}
 
-	public void RollPurchaseValue()
+	public int RollPurchaseValue(int min = 1, int max = 10)
 	{
 		//TODO: Make more dynamic pricing
-		purchaseValue = gm.rand.Range(1, 10);
-		gm.dialogueScript.PriceIndicator.text = "GP: " + purchaseValue;
-
+		return gm.rand.Range(min, max + 1);
+		
 	}
+
+	public void Reset()
+	{
+		readyForDialogue = false;
+		item = null;
+		selling = false;
+		gm.openingDialogues = "";
+		ToggleAgent(true);
+	}
+
+	public SaleItem CreateItem()
+	{
+		//Create a new item
+		SaleItem item = new SaleItem();
+		
+		//Pick a random item type
+		item.ItemType = gm.itemNames[gm.rand.Range(0, gm.itemNames.Count)];
+		
+		//Determine if it's special
+		bool special = gm.RollDice(10);
+		
+		//Special items get a flourish, and are have higher odds of higher prices
+		if (special)
+		{
+			//Pick a flourish
+			item.ItemFlourish = gm.itemFlourishes[gm.rand.Range(0, gm.itemFlourishes.Count)];
+			
+			//Roll for the item value
+			item.ItemValue = RollPurchaseValue(5, 20);
+		}
+		else
+		{
+			//Roll for the item value
+			item.ItemValue = RollPurchaseValue(1, 10);
+		}
+
+		//Hand back the item
+		return item;
+	}
+
+	public void SaySnark()
+	{
+		string snarkText = gm.snark[gm.rand.Range(0, gm.snark.Count)];
+		SnarkScript snark = Instantiate(SnarkPrefab).GetComponent<SnarkScript>();
+		snark.transform.parent = transform;
+		snark.transform.localPosition = Vector3.zero;
+		snark.SnarkText.text = snarkText;
+	}
+
+	public void StartDialogue()
+	{
+		//Determine if the customer is buying or selling
+		selling = gm.RollDice(50);
+
+		//Create and item to buy/sell
+		item = CreateItem();
+		
+		//Sync the opening price to the price of the object +- a few gp depending on if buying or selling
+		//Clamp it to 1 gp min
+		//TODO: Make some jitter in the value
+		purchaseValue = Math.Max(1, selling ? item.ItemValue + 2 : item.ItemValue - 2);
+		
+		//Get an intro text
+		openingDialogues = gm.openingDialogues[gm.rand.Range(0, gm.openingDialogues.Count)];
+
+		//Set the opening dialogue
+		gm.dialogueScript.DialogueText.text = openingDialogues;
+		
+		//Disable the agent
+		ToggleAgent(false);
+	}
+}
+
+public class SaleItem
+{
+	public string ItemType;
+	public string ItemFlourish;
+	public int ItemValue;
 }

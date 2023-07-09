@@ -16,11 +16,16 @@ public class DialogueScript : MonoBehaviour
 	public Transform HaggleButton;
 	public Transform AcceptButton;
 	public Transform DeclineButton;
+	public GameObject OKButton;
 	public GameObject DialogueBox;
+	public GameObject TradingButtons;
 	public bool playerSpeaking;
 
 	// Start is called before the first frame update
-	void Start() { }
+	void Start()
+	{
+		Reset();
+	}
 
 	// Update is called once per frame
 	void Update()
@@ -32,13 +37,19 @@ public class DialogueScript : MonoBehaviour
 			//Set the dialogue scripts customer name
 			CustomerName.text = gm.currentCustomer.NPCName;
 
-			//TODO: make flavour text generator
-			DialogueText.text = "Yeah... Hi?";
+	
 			BuyingIndicator.text = !gm.currentCustomer.selling ? "Buying" : "Selling";
+			gm.dialogueScript.PriceIndicator.text = "GP: " + gm.currentCustomer.purchaseValue;
 		}
 		else
 		{
 			DialogueBox.SetActive(false);
 		}
+	}
+
+	public void Reset()
+	{
+		TradingButtons.SetActive(false);
+		OKButton.SetActive(true);
 	}
 }

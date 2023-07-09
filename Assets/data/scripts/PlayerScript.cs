@@ -6,9 +6,11 @@ public class PlayerScript : MonoBehaviour
 {
 	public GameManagerScript gm;
 
-	public int gp;
-	
 	public int debt;
+	public int gp;
+	public int score = 0;
+	public List<string> reviews;
+	
 	// Start is called before the first frame update
 	void Start()
 	{

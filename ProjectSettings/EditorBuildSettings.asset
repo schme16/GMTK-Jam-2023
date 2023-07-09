@@ -7,7 +7,10 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/data/scenes/main.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    guid: a74ae21ce11aa02468ab8a74f42ec2f9
+  - enabled: 1
+    path: Assets/data/scenes/main-menu.unity
+    guid: 99ff825bfae3cc844b5ee7c4e082c003
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 784b7debd19eaf44b8a8bdfaa2b14e62,
       type: 2}
