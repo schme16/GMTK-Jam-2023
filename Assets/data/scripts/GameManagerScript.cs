@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using data.scripts;
+using SimpleJSON;
 using TMPro;
 using UnityEngine;
 using Random = Unity.Mathematics.Random;
@@ -28,12 +29,28 @@ public class GameManagerScript : MonoBehaviour
 	public bool canSpawnCustomers;
 	public float minTimeToSpawnNextCustomer;
 	public float maxTimeToSpawnNextCustomer;
+	public JSONNode itemNames;
+	public JSONNode npcFirstNames;
+	public JSONNode npcMiddleNames;
+	public JSONNode npcLastNames;
+	public JSONNode openingDialogues;
+	public JSONNode badReviews;
+	public JSONNode goodReviews;
+	public JSONNode snark;
 
 
 	// Start is called before the first frame update
 	void Start()
 	{
 		rand = new Rand(RandomSeed);
+		itemNames = JSON.Parse(Resources.Load<TextAsset>("itemNames").ToString());
+		npcFirstNames = JSON.Parse(Resources.Load<TextAsset>("npcFirstNames").ToString());
+		npcMiddleNames = JSON.Parse(Resources.Load<TextAsset>("npcMiddleNames").ToString());
+		npcLastNames = JSON.Parse(Resources.Load<TextAsset>("npcLastNames").ToString());
+		openingDialogues = JSON.Parse(Resources.Load<TextAsset>("openingDialogues").ToString());
+		badReviews = JSON.Parse(Resources.Load<TextAsset>("badReviews").ToString());
+		goodReviews = JSON.Parse(Resources.Load<TextAsset>("goodReviews").ToString());
+		snark = JSON.Parse(Resources.Load<TextAsset>("snark").ToString());
 	}
 
 	// Update is called once per frame
@@ -77,7 +94,7 @@ public class GameManagerScript : MonoBehaviour
 		{
 			Debug.Log("Player broke?");
 		}
-		
+
 
 		currentCustomer.readyForDialogue = false;
 		currentCustomer.ToggleAgent(true);

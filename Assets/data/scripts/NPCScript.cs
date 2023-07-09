@@ -20,6 +20,9 @@ public class NPCScript : MonoBehaviour
 	public bool selling;
 	public bool setUp;
 	public bool readyForDialogue;
+	public string NPCFirstName;
+	public string NPCLastName;
+	public string NPCMiddleName;
 	public string NPCName;
 	NavMeshAgent agent;
 	NavMeshObstacle agentObstacle;
@@ -189,7 +192,21 @@ public class NPCScript : MonoBehaviour
 		ToggleAgent(true);
 
 		//TODO: make a name generator
-		NPCName = "Berttie Toots";
+		int numberOfNames = gm.rand.Range(2, 4);
+		if (numberOfNames == 2)
+		{
+			NPCFirstName = gm.npcFirstNames[gm.rand.Range(0, gm.npcFirstNames.Count)];
+			NPCLastName = gm.npcLastNames[gm.rand.Range(0, gm.npcLastNames.Count)];
+			NPCName = NPCFirstName + " " + NPCLastName;
+		}
+		else
+		{
+			NPCFirstName = gm.npcFirstNames[gm.rand.Range(0, gm.npcFirstNames.Count)];
+			NPCLastName = gm.npcLastNames[gm.rand.Range(0, gm.npcLastNames.Count)];
+			NPCMiddleName = gm.npcMiddleNames[gm.rand.Range(0, gm.npcMiddleNames.Count)];
+			NPCName = NPCFirstName + " " + NPCMiddleName + " " + NPCLastName;
+		}
+			
 
 		setUp = true;
 	}
