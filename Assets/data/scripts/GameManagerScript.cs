@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using data.scripts;
 using SimpleJSON;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 using Random = Unity.Mathematics.Random;
 
 public class GameManagerScript : MonoBehaviour
@@ -17,9 +19,13 @@ public class GameManagerScript : MonoBehaviour
 	public GameObject GameOverUI;
 	public GameObject BankruptUI;
 	public GameObject OutOfBusinessUI;
+	public GameObject HighscoresUI;
 	public TMP_Text goldUI;
 	public TMP_Text debtUI;
+	public TMP_Text debtLabelUI;
+	public TMP_Text debtCounterUI;
 	public TMP_Text scoreUI;
+	public TMP_InputField playersNameUI;
 	public Rand rand;
 	public int RandomSeed;
 	public int maxCustomers;
@@ -31,6 +37,7 @@ public class GameManagerScript : MonoBehaviour
 	public int maxNPCHaggleDisposition;
 	public int minNPCPersonality;
 	public int maxNPCPersonality;
+	public int DebtRepaymentAmount;
 	public int TimeBetweenPayments;
 	public NPCScript currentCustomer;
 	public bool canSpawnCustomers;
@@ -64,8 +71,8 @@ public class GameManagerScript : MonoBehaviour
 		badReviews = JSON.Parse(Resources.Load<TextAsset>("badReviews").ToString());
 		goodReviews = JSON.Parse(Resources.Load<TextAsset>("goodReviews").ToString());
 		snark = JSON.Parse(Resources.Load<TextAsset>("snark").ToString());
-
-		Debug.Log($"0000 {openingDialogues[0]}");
+		NextDebtPaymentCounter = TimeBetweenPayments;
+		NewGame(true);
 	}
 
 	// Update is called once per frame
@@ -80,8 +87,8 @@ public class GameManagerScript : MonoBehaviour
 		scoreUI.text = player.score switch
 		{
 			>= 30 => "Very positive",
-			>= 20 => "Somewhat positive",
-			>= 15 => "Positive",
+			>= 25 => "Somewhat positive",
+			>= 20 => "Positive",
 			<= 0 => "Very Negative",
 			<= 5 => "Negative",
 			<= 10 => "Somewhat negative",
@@ -92,13 +99,26 @@ public class GameManagerScript : MonoBehaviour
 		//Lerp the colour
 		scoreUI.color = Color.Lerp(Color.red, Color.green, (float)(player.score) / 30f);
 
-		if (currentCustomer == null || !currentCustomer.readyForDialogue)
+		if (!GameOver && (currentCustomer == null || !currentCustomer.readyForDialogue))
 		{
 			NextDebtPaymentCounter -= Time.deltaTime;
 			if (NextDebtPaymentCounter <= 0)
 			{
 				NextDebtPaymentCounter = TimeBetweenPayments;
+				player.gp = Mathf.Max(0, player.gp - DebtRepaymentAmount);
+				player.debt += DebtRepaymentAmount;
+				if (player.debt > 0)
+				{
+					debtLabelUI.text = "Profit";
+				}
+
+				if (player.gp <= 0)
+				{
+					ShowGameOver();
+				}
 			}
+
+			debtCounterUI.text = ((int)Mathf.Max(0, NextDebtPaymentCounter)).ToString();
 		}
 	}
 
@@ -151,8 +171,17 @@ public class GameManagerScript : MonoBehaviour
 		}
 		else
 		{
-			//Re-roll the price
-			currentCustomer.purchaseValue = currentCustomer.RollPurchaseValue();
+			bool crit = RollDice(5);
+			if (crit)
+			{
+				//Re-roll the price
+				currentCustomer.purchaseValue = currentCustomer.RollPurchaseValue(currentCustomer.item.ItemValue - 1, currentCustomer.item.ItemValue + 15);
+			}
+			else
+			{
+				//Re-roll the price
+				currentCustomer.purchaseValue = currentCustomer.RollPurchaseValue();
+			}
 		}
 	}
 
@@ -242,14 +271,45 @@ public class GameManagerScript : MonoBehaviour
 			return false;
 	}
 
-	public void ShowGameOver()
+	async public void ShowGameOver()
 	{
+		GameOver = true;
+
+		if (PlayerPrefs.GetString("PersonalBestCheck") == "true")
+		{
+			int personalBestValue = PlayerPrefs.GetInt("PersonalBestValue");
+			if (player.debt > personalBestValue)
+			{
+				PlayerPrefs.SetInt("PersonalBestValue", player.debt);
+			}
+		}
+		else
+		{
+			PlayerPrefs.SetInt("PersonalBestValue", player.debt);
+		}
+
+		PlayerPrefs.SetString("PersonalBestCheck", "true");
+
+
+		if (currentCustomer != null)
+		{
+			currentCustomer.Wander();
+			currentCustomer = null;
+		}
+
+		string name = PlayerPrefs.GetString("Player Name");
+		if (name.Length > 0)
+		{
+			string url = $"https://scores.shanegadsby.com/post-score?game={UnityWebRequest.EscapeURL("GMTK Game Jam 2023 - A merchants work")}&score={UnityWebRequest.EscapeURL(player.debt.ToString())}&name={UnityWebRequest.EscapeURL(name)}";
+			UnityWebRequest.Get(url).SendWebRequest();
+		}
+
 		//Reset the dialogue ui back to base state
 		dialogueScript.Reset();
 
 		//Show the GameOver UI
 		GameOverUI.SetActive(true);
-		if (player.gp <= 0) 
+		if (player.gp <= 0)
 		{
 			OutOfBusinessUI.SetActive(false);
 			BankruptUI.SetActive(true);
@@ -261,36 +321,34 @@ public class GameManagerScript : MonoBehaviour
 		}
 	}
 
-	
+
 	public void ShowHighscores()
 	{
-		//Reset the debt payment timer
-		NextDebtPaymentCounter = TimeBetweenPayments;
-		
-		//Reset the dialogue ui back to base state
-		dialogueScript.Reset();
-
 		//Show the GameOver UI
-		GameOverUI.SetActive(true);
-		if (player.gp <= 0) 
-		{
-			OutOfBusinessUI.SetActive(false);
-			BankruptUI.SetActive(true);
-		}
-		else
-		{
-			BankruptUI.SetActive(false);
-			OutOfBusinessUI.SetActive(true);
-		}
+		GameOverUI.SetActive(false);
+		HighscoresUI.SetActive(true);
 	}
 
-	public void NewGame()
+	public void NewGame(bool skipHideHighscoresOnFirstLoad = false)
 	{
+		playersNameUI.text = PlayerPrefs.GetString("Player Name");
+		debtLabelUI.text = "Debt Remaining";
+
 		//Reset the dialogue ui
 		dialogueScript.Reset();
 
-		//Hide the GameOver UI
+		//Hide the various UIs
 		GameOverUI.SetActive(false);
+		if (skipHideHighscoresOnFirstLoad)
+		{
+			GameOver = true;
+			HighscoresUI.SetActive(true);
+		}
+		else
+		{
+			GameOver = false;
+			HighscoresUI.SetActive(false);
+		}
 
 		player.Reset();
 
@@ -299,7 +357,10 @@ public class GameManagerScript : MonoBehaviour
 		{
 			Destroy(child.gameObject);
 		}
+	}
 
-		GameOver = false;
+	public void SavePlayerName()
+	{
+		PlayerPrefs.SetString("Player Name", playersNameUI.text);
 	}
 }

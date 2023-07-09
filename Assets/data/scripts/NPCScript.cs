@@ -95,14 +95,20 @@ public class NPCScript : MonoBehaviour
 						//This is what triggers when the agent enters dialogue mode
 						else if (gm.currentCustomer == this && !readyForDialogue)
 						{
-							//Marks the 
-							readyForDialogue = true;
+							if (gm.GameOver)
+							{
+								Wander();
+							}
+							else
+							{
+								//Marks the 
+								readyForDialogue = true;
 
+								//Increase the avoidance priority while seeking the cart
+								agent.avoidancePriority = 50;
 
-							//Increase the avoidance priority while seeking the cart
-							agent.avoidancePriority = 50;
-
-							StartDialogue();
+								StartDialogue();
+							}
 						}
 					}
 				}
@@ -133,7 +139,7 @@ public class NPCScript : MonoBehaviour
 		return hit.position;
 	}
 
-	void Wander()
+	public void Wander()
 	{
 		var targetWorld = GetRandomPoint(transform.position, wanderDistance);
 		Seek(targetWorld);
@@ -265,7 +271,8 @@ public class NPCScript : MonoBehaviour
 
 	public void StartDialogue()
 	{
-		Debug.Log(1111);
+		//Show the dialogue window
+		gm.dialogueScript.gameObject.SetActive(true);
 		
 		//Show the portrait container
 		gm.dialogueScript.NPCPortraitParent.SetActive(true);
@@ -305,10 +312,10 @@ public class NPCScript : MonoBehaviour
 		purchaseValue = Math.Max(1, selling ? item.ItemValue + 2 : item.ItemValue - 2);
 
 		int dialogueIndex = gm.rand.Range(0, gm.openingDialogues.Count);
-		
+
 		//Get an intro text
 		openingDialogue = gm.openingDialogues[dialogueIndex];
-		
+
 		//Set the opening dialogue
 		gm.dialogueScript.DialogueText.text = openingDialogue;
 
