@@ -27,7 +27,7 @@ public class NPCScript : MonoBehaviour
 	public SaleItem item;
 	public string NPCMiddleName;
 	public string NPCName;
-	public string openingDialogues;
+	public string openingDialogue;
 	NavMeshAgent agent;
 	NavMeshObstacle agentObstacle;
 
@@ -61,16 +61,19 @@ public class NPCScript : MonoBehaviour
 						if (!gm.currentCustomer)
 						{
 							//Roll the dice, if 190 or higher
-							if (gm.rand.Range(0, 200) > 190 && gp > 0)
+							if (gm.RollDice(5) && gp > 0)
 							{
-								//Make this agent the customer
-								gm.currentCustomer = this;
+								if (!gm.GameOver)
+								{
+									//Make this agent the customer
+									gm.currentCustomer = this;
 
-								//Increase the avoidance priority while seeking the cart
-								agent.avoidancePriority = 10;
+									//Increase the avoidance priority while seeking the cart
+									agent.avoidancePriority = 10;
 
-								//Seek the cart
-								Seek(new Vector3(gm.cartNPCPos.position.x, transform.position.y, gm.cartNPCPos.position.z));
+									//Seek the cart
+									Seek(new Vector3(gm.cartNPCPos.position.x, transform.position.y, gm.cartNPCPos.position.z));
+								}
 							}
 
 							//189 or less
@@ -210,7 +213,6 @@ public class NPCScript : MonoBehaviour
 	{
 		//TODO: Make more dynamic pricing
 		return gm.rand.Range(min, max + 1);
-		
 	}
 
 	public void Reset()
@@ -218,7 +220,7 @@ public class NPCScript : MonoBehaviour
 		readyForDialogue = false;
 		item = null;
 		selling = false;
-		gm.openingDialogues = "";
+		openingDialogue = "";
 		ToggleAgent(true);
 	}
 
@@ -226,19 +228,19 @@ public class NPCScript : MonoBehaviour
 	{
 		//Create a new item
 		SaleItem item = new SaleItem();
-		
+
 		//Pick a random item type
 		item.ItemType = gm.itemNames[gm.rand.Range(0, gm.itemNames.Count)];
-		
+
 		//Determine if it's special
 		bool special = gm.RollDice(10);
-		
+
 		//Special items get a flourish, and are have higher odds of higher prices
 		if (special)
 		{
 			//Pick a flourish
 			item.ItemFlourish = gm.itemFlourishes[gm.rand.Range(0, gm.itemFlourishes.Count)];
-			
+
 			//Roll for the item value
 			item.ItemValue = RollPurchaseValue(5, 20);
 		}
@@ -263,23 +265,53 @@ public class NPCScript : MonoBehaviour
 
 	public void StartDialogue()
 	{
+		Debug.Log(1111);
+		
+		//Show the portrait container
+		gm.dialogueScript.NPCPortraitParent.SetActive(true);
+
+		//Clear the NPC portrait container
+		foreach (Transform child in gm.dialogueScript.NPCPortraitParent.transform)
+		{
+			GameObject.Destroy(child.gameObject);
+		}
+
+
+		//Clone the customer into the portrait container
+		GameObject customerPortrait = Instantiate(gameObject);
+
+		//Disable unneeded the scripts
+		DestroyImmediate(customerPortrait.GetComponent<NavMeshAgent>());
+		DestroyImmediate(customerPortrait.GetComponent<NavMeshObstacle>());
+		DestroyImmediate(customerPortrait.GetComponent<NPCScript>());
+
+		//Add the portrait clone to the portrait container
+		customerPortrait.transform.SetParent(gm.dialogueScript.NPCPortraitParent.transform);
+
+		//Set the position to 0,0,0
+		customerPortrait.transform.localPosition = Vector3.zero;
+		customerPortrait.transform.localEulerAngles = Vector3.zero;
+
+
 		//Determine if the customer is buying or selling
 		selling = gm.RollDice(50);
 
 		//Create and item to buy/sell
 		item = CreateItem();
-		
+
 		//Sync the opening price to the price of the object +- a few gp depending on if buying or selling
 		//Clamp it to 1 gp min
 		//TODO: Make some jitter in the value
 		purchaseValue = Math.Max(1, selling ? item.ItemValue + 2 : item.ItemValue - 2);
+
+		int dialogueIndex = gm.rand.Range(0, gm.openingDialogues.Count);
 		
 		//Get an intro text
-		openingDialogues = gm.openingDialogues[gm.rand.Range(0, gm.openingDialogues.Count)];
-
-		//Set the opening dialogue
-		gm.dialogueScript.DialogueText.text = openingDialogues;
+		openingDialogue = gm.openingDialogues[dialogueIndex];
 		
+		//Set the opening dialogue
+		gm.dialogueScript.DialogueText.text = openingDialogue;
+
 		//Disable the agent
 		ToggleAgent(false);
 	}

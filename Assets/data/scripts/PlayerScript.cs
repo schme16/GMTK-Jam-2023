@@ -8,17 +8,24 @@ public class PlayerScript : MonoBehaviour
 
 	public int debt;
 	public int gp;
-	public int score = 0;
+	public int score;
 	public List<string> reviews;
 	
 	// Start is called before the first frame update
 	void Start()
 	{
 		gm = FindObjectOfType<GameManagerScript>();
-		gp = gm.startingGold;
-		debt = gm.startingDebt;
+		Reset();
 	}
 
 	// Update is called once per frame
 	void Update() { }
+
+	public void Reset()
+	{
+		gp = gm.startingGold;
+		debt = gm.startingDebt;
+		score = 15;
+		reviews.Clear();
+	}
 }

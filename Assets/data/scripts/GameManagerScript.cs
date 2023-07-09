@@ -14,8 +14,12 @@ public class GameManagerScript : MonoBehaviour
 	public Camera camera;
 	public Transform customerQueueObj;
 	public Transform cartNPCPos;
+	public GameObject GameOverUI;
+	public GameObject BankruptUI;
+	public GameObject OutOfBusinessUI;
 	public TMP_Text goldUI;
 	public TMP_Text debtUI;
+	public TMP_Text scoreUI;
 	public Rand rand;
 	public int RandomSeed;
 	public int maxCustomers;
@@ -27,10 +31,13 @@ public class GameManagerScript : MonoBehaviour
 	public int maxNPCHaggleDisposition;
 	public int minNPCPersonality;
 	public int maxNPCPersonality;
+	public int TimeBetweenPayments;
 	public NPCScript currentCustomer;
 	public bool canSpawnCustomers;
+	public bool GameOver;
 	public float minTimeToSpawnNextCustomer;
 	public float maxTimeToSpawnNextCustomer;
+	public float NextDebtPaymentCounter;
 	public JSONNode itemNames;
 	public JSONNode itemFlourishes;
 	public JSONNode npcFirstNames;
@@ -57,6 +64,8 @@ public class GameManagerScript : MonoBehaviour
 		badReviews = JSON.Parse(Resources.Load<TextAsset>("badReviews").ToString());
 		goodReviews = JSON.Parse(Resources.Load<TextAsset>("goodReviews").ToString());
 		snark = JSON.Parse(Resources.Load<TextAsset>("snark").ToString());
+
+		Debug.Log($"0000 {openingDialogues[0]}");
 	}
 
 	// Update is called once per frame
@@ -65,62 +74,85 @@ public class GameManagerScript : MonoBehaviour
 		goldUI.text = player.gp + "GP";
 		debtUI.text = player.debt + "GP";
 		canSpawnCustomers = customerQueueObj.childCount < maxCustomers;
+
+
+		//Update the customer satisfaction ui
+		scoreUI.text = player.score switch
+		{
+			>= 30 => "Very positive",
+			>= 20 => "Somewhat positive",
+			>= 15 => "Positive",
+			<= 0 => "Very Negative",
+			<= 5 => "Negative",
+			<= 10 => "Somewhat negative",
+			_ => "Neutral"
+		};
+
+
+		//Lerp the colour
+		scoreUI.color = Color.Lerp(Color.red, Color.green, (float)(player.score) / 30f);
+
+		if (currentCustomer == null || !currentCustomer.readyForDialogue)
+		{
+			NextDebtPaymentCounter -= Time.deltaTime;
+			if (NextDebtPaymentCounter <= 0)
+			{
+				NextDebtPaymentCounter = TimeBetweenPayments;
+			}
+		}
 	}
 
 	public void AcceptTrade()
 	{
 		//Customer is selling their item
-		if (currentCustomer.selling && player.gp > 0)
+		if (currentCustomer.selling)
 		{
-			if (currentCustomer.gp <= currentCustomer.purchaseValue)
-			{
-				currentCustomer.purchaseValue = currentCustomer.gp;
-			}
-
+			//Add the gp to the players gp
 			player.gp = Mathf.Max(0, player.gp - currentCustomer.purchaseValue);
-			currentCustomer.gp += currentCustomer.purchaseValue;
 
-			//TODO: make customer leave a review
+
+			//Fetch a good review
+			string review = goodReviews[rand.Range(0, goodReviews.Count)];
+
+			//Leave a review
+			LeaveReview(review, 1);
 		}
 
 		//Customer is buying an item
-		else if (!currentCustomer.selling && currentCustomer.gp > 0)
+		else if (!currentCustomer.selling)
 		{
-			if (currentCustomer.gp <= currentCustomer.purchaseValue)
-			{
-				currentCustomer.purchaseValue = currentCustomer.gp;
-			}
-
-			currentCustomer.gp = Mathf.Max(0, currentCustomer.gp - currentCustomer.purchaseValue);
+			//Add the gp to the players gp
 			player.gp += currentCustomer.purchaseValue;
 
-			//TODO: make customer leave a review
-		}
-		else
-		{
-			Debug.Log("Player broke?");
+			//Fetch a good review
+			string review = goodReviews[rand.Range(0, goodReviews.Count)];
+
+			//Leave a review
+			LeaveReview(review, 1);
 		}
 
-
-		currentCustomer.readyForDialogue = false;
-		currentCustomer.ToggleAgent(true);
-		currentCustomer = null;
+		FinishTrade();
 	}
 
 	public void HaggleTrade()
 	{
-		//Pick a possibility
-		int r = rand.Range(1, 101);
+		//Check to see how willing they are to haggle, then roll the dice to see if you pass the check
+		bool haggleCheck = RollDice(currentCustomer.haggleDisposition);
 
-		//If the number is lower than the currentCustomer.personality the customer will storm off
-		if (r < currentCustomer.personality)
+		if (!haggleCheck)
 		{
+			//Spawn a snark box
 			currentCustomer.SaySnark();
+
+			LeaveReview("", -2);
+
+			//Finish up the trade cycle
 			FinishTrade();
 		}
 		else
 		{
-			currentCustomer.RollPurchaseValue();
+			//Re-roll the price
+			currentCustomer.purchaseValue = currentCustomer.RollPurchaseValue();
 		}
 	}
 
@@ -131,12 +163,9 @@ public class GameManagerScript : MonoBehaviour
 		//If the number is lower than the currentCustomer.personality, you'll get a bad review
 		if (r < currentCustomer.personality)
 		{
-			int score = 0;
 			string review = badReviews[rand.Range(0, badReviews.Count)];
-			score = (int)Math.Ceiling(currentCustomer.personality / 10f);
-
 			//Leave a review
-			LeaveReview(review, -score);
+			LeaveReview(review, -1);
 		}
 
 		FinishTrade();
@@ -146,23 +175,63 @@ public class GameManagerScript : MonoBehaviour
 	{
 		//Reset the customer back to base state
 		currentCustomer.Reset();
-		
+
 		//Clear the current customer
 		currentCustomer = null;
-		
+
 		//Reset the dialogue ui back to base state
 		dialogueScript.Reset();
+
+		if (player.gp <= 0)
+		{
+			GameOver = true;
+			ShowGameOver();
+		}
+
+		if (player.score <= 0)
+		{
+			GameOver = true;
+			ShowGameOver();
+		}
 	}
 
 	public void StartTrading()
 	{
+		dialogueScript.OKButton.SetActive(false);
 		dialogueScript.TradingButtons.SetActive(true);
-	} 
-	
+
+		string intro = "asd";
+
+		string haggleDisposition = currentCustomer.haggleDisposition switch
+		{
+			< 50 => "not very willing to haggle",
+			< 75 => "somewhat willing to haggle",
+			_ => "pretty willing to haggle"
+		};
+		if (currentCustomer.selling)
+		{
+			intro = $"I have here the finest <#3cc1ffff>{currentCustomer.item.ItemType}</color>!\n" +
+					$"I'm looking to get {currentCustomer.purchaseValue} gp for it.\n\n" +
+					$"<size=14>(Looks like they're {haggleDisposition})</size>";
+		}
+		else
+		{
+			intro = $"I'm looking to purchase your <#3cc1ffff>{currentCustomer.item.ItemType}</color>, how does {currentCustomer.purchaseValue} gp sound?.\n\n" +
+					$"<size=14>(Looks like they're {haggleDisposition})</size>";
+		}
+
+		dialogueScript.DialogueText.text = intro;
+	}
+
 	void LeaveReview(string review, int score)
 	{
-		player.reviews.Add(review);
+		if (review != "")
+		{
+			player.reviews.Add(review);
+		}
+
 		player.score += score;
+		player.score = Mathf.Min(30, Mathf.Max(0, player.score));
 	}
 
 	public bool RollDice(int percentageChance)
@@ -171,5 +240,66 @@ public class GameManagerScript : MonoBehaviour
 			return true;
 		else
 			return false;
+	}
+
+	public void ShowGameOver()
+	{
+		//Reset the dialogue ui back to base state
+		dialogueScript.Reset();
+
+		//Show the GameOver UI
+		GameOverUI.SetActive(true);
+		if (player.gp <= 0) 
+		{
+			OutOfBusinessUI.SetActive(false);
+			BankruptUI.SetActive(true);
+		}
+		else
+		{
+			BankruptUI.SetActive(false);
+			OutOfBusinessUI.SetActive(true);
+		}
+	}
+
+	
+	public void ShowHighscores()
+	{
+		//Reset the debt payment timer
+		NextDebtPaymentCounter = TimeBetweenPayments;
+		
+		//Reset the dialogue ui back to base state
+		dialogueScript.Reset();
+
+		//Show the GameOver UI
+		GameOverUI.SetActive(true);
+		if (player.gp <= 0) 
+		{
+			OutOfBusinessUI.SetActive(false);
+			BankruptUI.SetActive(true);
+		}
+		else
+		{
+			BankruptUI.SetActive(false);
+			OutOfBusinessUI.SetActive(true);
+		}
+	}
+
+	public void NewGame()
+	{
+		//Reset the dialogue ui
+		dialogueScript.Reset();
+
+		//Hide the GameOver UI
+		GameOverUI.SetActive(false);
+
+		player.Reset();
+
+		//Clear the NPCs
+		foreach (Transform child in customerQueueObj)
+		{
+			Destroy(child.gameObject);
+		}
+
+		GameOver = false;
 	}
 }

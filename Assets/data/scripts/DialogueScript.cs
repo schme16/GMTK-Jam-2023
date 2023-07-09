@@ -7,8 +7,8 @@ public class DialogueScript : MonoBehaviour
 {
 	public GameManagerScript gm;
 	public Camera DialogueCamera;
-	public Transform PlayerPortraitParent;
-	public Transform NPCPortraitParent;
+	public GameObject PlayerPortraitParent;
+	public GameObject NPCPortraitParent;
 	public TMP_Text DialogueText;
 	public TMP_Text BuyingIndicator;
 	public TMP_Text PriceIndicator;
@@ -37,7 +37,7 @@ public class DialogueScript : MonoBehaviour
 			//Set the dialogue scripts customer name
 			CustomerName.text = gm.currentCustomer.NPCName;
 
-	
+
 			BuyingIndicator.text = !gm.currentCustomer.selling ? "Buying" : "Selling";
 			gm.dialogueScript.PriceIndicator.text = "GP: " + gm.currentCustomer.purchaseValue;
 		}
@@ -45,6 +45,7 @@ public class DialogueScript : MonoBehaviour
 		{
 			DialogueBox.SetActive(false);
 		}
+
 	}
 
 	public void Reset()
