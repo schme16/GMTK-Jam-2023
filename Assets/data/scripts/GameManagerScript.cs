@@ -45,6 +45,13 @@ public class GameManagerScript : MonoBehaviour
 	public float minTimeToSpawnNextCustomer;
 	public float maxTimeToSpawnNextCustomer;
 	public float NextDebtPaymentCounter;
+	public AudioClip dialogueOpenSFX;
+	public AudioClip snarkSFX;
+	public AudioClip successfulTransactionSFX;
+	public AudioClip uiButtonClickSFX;
+	public AudioClip sucessfulHaggleSFX;
+	public AudioClip gameOverSFX;
+	public AudioSource sfxSource;
 	public JSONNode itemNames;
 	public JSONNode itemFlourishes;
 	public JSONNode npcFirstNames;
@@ -134,6 +141,7 @@ public class GameManagerScript : MonoBehaviour
 			//Fetch a good review
 			string review = goodReviews[rand.Range(0, goodReviews.Count)];
 
+
 			//Leave a review
 			LeaveReview(review, 1);
 		}
@@ -151,6 +159,7 @@ public class GameManagerScript : MonoBehaviour
 			LeaveReview(review, 1);
 		}
 
+		sfxSource.PlayOneShot(successfulTransactionSFX);
 		FinishTrade();
 	}
 
@@ -159,16 +168,19 @@ public class GameManagerScript : MonoBehaviour
 		//Check to see how willing they are to haggle, then roll the dice to see if you pass the check
 		bool haggleCheck = RollDice(currentCustomer.haggleDisposition);
 
+		//Failed haggle check
 		if (!haggleCheck)
 		{
 			//Spawn a snark box
 			currentCustomer.SaySnark();
-
+			sfxSource.PlayOneShot(snarkSFX);
 			LeaveReview("", -2);
 
 			//Finish up the trade cycle
 			FinishTrade();
 		}
+		
+		//Successful haggle check
 		else
 		{
 			bool crit = RollDice(5);
@@ -182,6 +194,8 @@ public class GameManagerScript : MonoBehaviour
 				//Re-roll the price
 				currentCustomer.purchaseValue = currentCustomer.RollPurchaseValue();
 			}
+
+			sfxSource.PlayOneShot(successfulTransactionSFX);
 		}
 	}
 
@@ -229,7 +243,7 @@ public class GameManagerScript : MonoBehaviour
 		dialogueScript.OKButton.SetActive(false);
 		dialogueScript.TradingButtons.SetActive(true);
 
-		string intro = "asd";
+		string intro = "";
 
 		string haggleDisposition = currentCustomer.haggleDisposition switch
 		{
@@ -273,6 +287,8 @@ public class GameManagerScript : MonoBehaviour
 
 	async public void ShowGameOver()
 	{
+		sfxSource.PlayOneShot(gameOverSFX);
+
 		GameOver = true;
 
 		if (PlayerPrefs.GetString("PersonalBestCheck") == "true")
@@ -362,5 +378,10 @@ public class GameManagerScript : MonoBehaviour
 	public void SavePlayerName()
 	{
 		PlayerPrefs.SetString("Player Name", playersNameUI.text);
+	}
+
+	public void playButtonClick()
+	{
+		sfxSource.PlayOneShot(uiButtonClickSFX);
 	}
 }

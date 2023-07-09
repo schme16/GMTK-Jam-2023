@@ -271,9 +271,11 @@ public class NPCScript : MonoBehaviour
 
 	public void StartDialogue()
 	{
+		gm.sfxSource.PlayOneShot(gm.dialogueOpenSFX);
+
 		//Show the dialogue window
 		gm.dialogueScript.gameObject.SetActive(true);
-		
+
 		//Show the portrait container
 		gm.dialogueScript.NPCPortraitParent.SetActive(true);
 
