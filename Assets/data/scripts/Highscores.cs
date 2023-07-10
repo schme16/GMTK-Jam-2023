@@ -46,7 +46,7 @@ public class Highscores : MonoBehaviour
 		}
 		else
 		{
-			PersonalBest.text = "-";
+			PersonalBest.text = $"     -     ";
 		}
 
 		int i = 0;
@@ -70,7 +70,7 @@ public class Highscores : MonoBehaviour
 		}
 		else
 		{
-			PersonalBest.text = "-";
+			PersonalBest.text = $"     -     ";
 		}
 
 		int i = 0;

@@ -20,6 +20,7 @@ public class GameManagerScript : MonoBehaviour
 	public GameObject BankruptUI;
 	public GameObject OutOfBusinessUI;
 	public GameObject HighscoresUI;
+	public GameObject HighscoresNewGameButton;
 	public TMP_Text goldUI;
 	public TMP_Text debtUI;
 	public TMP_Text debtLabelUI;
@@ -179,7 +180,7 @@ public class GameManagerScript : MonoBehaviour
 			//Finish up the trade cycle
 			FinishTrade();
 		}
-		
+
 		//Successful haggle check
 		else
 		{
@@ -378,6 +379,7 @@ public class GameManagerScript : MonoBehaviour
 	public void SavePlayerName()
 	{
 		PlayerPrefs.SetString("Player Name", playersNameUI.text);
+		HighscoresNewGameButton.SetActive(playersNameUI.text.Length > 0);
 	}
 
 	public void playButtonClick()

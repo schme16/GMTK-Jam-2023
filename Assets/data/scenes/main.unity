@@ -751,9 +751,9 @@ MonoBehaviour:
   m_fontSize: 20
   m_fontSizeBase: 20
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 15
-  m_fontSizeMax: 40
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 10
+  m_fontSizeMax: 20
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 4096
@@ -2060,7 +2060,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &421592602
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4317,7 +4317,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Enter your name to submit Highscores...
+  m_text: Enter your name...
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 72b9b0399587606449d6a0ff0d4ceefb, type: 2}
   m_sharedMaterial: {fileID: -8877063351052580562, guid: 72b9b0399587606449d6a0ff0d4ceefb,
@@ -8230,6 +8230,7 @@ MonoBehaviour:
   BankruptUI: {fileID: 271800458}
   OutOfBusinessUI: {fileID: 1663219650}
   HighscoresUI: {fileID: 1757538379}
+  HighscoresNewGameButton: {fileID: 421592601}
   goldUI: {fileID: 1610406184}
   debtUI: {fileID: 2056054368}
   debtLabelUI: {fileID: 1864669843}
